@@ -1,0 +1,11 @@
+*.jpg
+*.png
+*.mp4
+*.jpeg
+__pycache__
+.venv
+vlm
+training/
+results/
+meta_train/
+eval_res/

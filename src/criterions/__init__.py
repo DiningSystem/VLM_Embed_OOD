@@ -8,8 +8,7 @@ from .em_kd_llava_ov import EMKDLLavaLoss
 from .span_propose import SpanProposeCriterion
 from .span_propose_attn import SpanProposeCriterionWeighted
 from .span_propose_attn_only_phrase import SpanProposeCriterionWeightedOnlyPhrase
-from .gvendi import GVendiVLMCriterion
-from .gvendi_topology_extract import GvendiTopologyExtract
+from .gvendi_phase1 import GvendiPhase1
 
 criterion_list = {
     "contrastive_rkd": ContrastiveLossWithRKD,
@@ -22,8 +21,7 @@ criterion_list = {
     "span_propose": SpanProposeCriterion,
     "span_propose_attn": SpanProposeCriterionWeighted,
     "span_propose_attn_only_phrase": SpanProposeCriterionWeightedOnlyPhrase,
-    "gvendi_phase2": GVendiVLMCriterion,
-    "gvendi_phase1": GvendiTopologyExtract
+    "gvendi_phase1": GvendiPhase1
 }
 
 def build_criterion(args, distiller):

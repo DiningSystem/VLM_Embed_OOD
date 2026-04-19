@@ -45,8 +45,7 @@ class ModelArguments:
     teacher_hidden_dim: int = field(default=1536, metadata={"help": "teacher hidden dim"})
     load_pretrained_lora: bool = field(default=False, metadata={"help": "load pretrained lora model for student"})
     #! new args for span loss
-    
-    
+    num_last_layer: int = field(default=1, metadata={"help": "number of last layers to apply gvendi phase1"})
 
 @dataclass
 class DataArguments:
@@ -119,6 +118,8 @@ class TrainingArguments(TrainingArguments):
         metadata={"help": "List of split layers for student; number of elements equals number of projectors"}   
     )
     w_cross_modal_loss: float = field(default=1.0, metadata={"help": "weight for cross modal loss"})
+
+
 @dataclass
 class MTEBArguments:
     device: str = field(default="cuda", metadata={"help": "use cuda for single GPU inference, if multiple GPUs are available it will use DP automatically"})

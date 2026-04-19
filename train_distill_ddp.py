@@ -309,7 +309,7 @@ def main():
             optimizer,
             num_warmup_steps=training_args.warmup_ratio * total_steps,
         )
-    criterion = build_criterion(training_args)
+    criterion = build_criterion(training_args, distiller)
     trainer = Trainer(distiller, train_dataloader, optimizer, lr_scheduler, criterion, model_args, training_args)
     trainer.train()
     

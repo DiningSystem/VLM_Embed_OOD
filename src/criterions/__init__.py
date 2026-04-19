@@ -8,6 +8,7 @@ from .em_kd_llava_ov import EMKDLLavaLoss
 from .span_propose import SpanProposeCriterion
 from .span_propose_attn import SpanProposeCriterionWeighted
 from .span_propose_attn_only_phrase import SpanProposeCriterionWeightedOnlyPhrase
+from .gvendi import GVendiVLMCriterion
 
 criterion_list = {
     "contrastive_rkd": ContrastiveLossWithRKD,
@@ -20,9 +21,13 @@ criterion_list = {
     "span_propose": SpanProposeCriterion,
     "span_propose_attn": SpanProposeCriterionWeighted,
     "span_propose_attn_only_phrase": SpanProposeCriterionWeightedOnlyPhrase,
+    "gvendi": GVendiVLMCriterion
 }
 
-def build_criterion(args):
+def build_criterion(args, distiller):
     if args.kd_loss_type not in criterion_list.keys():
         raise ValueError(f"Criterion {args.kd_loss_type} not found.")
+    
+    if "gvendi" in args.kd_loss_type:
+        return criterion_list[args.kd_loss_type](args, distiller)
     return criterion_list[args.kd_loss_type](args)

@@ -131,12 +131,12 @@ class Trainer:
                 batch_loss = loss_dict.get(loss_type, torch.tensor(0.0))
                 losses[loss_type].append(batch_loss.detach().item())
 
-            total_loss.backward()
+            # total_loss.backward()
             
             if (batch_idx + 1) % self.training_args.gradient_accumulation_steps == 0:
-                self.optimizer.step()
-                self.lr_scheduler.step()
-                self.optimizer.zero_grad()
+                # self.optimizer.step()
+                # self.lr_scheduler.step()
+                # self.optimizer.zero_grad()
             
                 if is_main_process():
                     postfix_batch_loss = {

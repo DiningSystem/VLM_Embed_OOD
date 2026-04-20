@@ -81,6 +81,7 @@ class DataArguments:
     need_hash: bool = field(default=False, metadata={"help": ""})
     need_cache_teacher_grad: bool = field(default=False, metadata={"help": ""})
     teacher_cache_dir: str = field(default=None, metadata={"help": ""})
+    phase_1: bool = field(default=False, metadata={"help": ""})
 
 @dataclass
 class TrainingArguments(TrainingArguments):

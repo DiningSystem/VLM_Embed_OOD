@@ -26,10 +26,10 @@ criterion_list = {
     "gvendi_phase1": GvendiTopologyExtract
 }
 
-def build_criterion(args, distiller):
-    if args.kd_loss_type not in criterion_list.keys():
-        raise ValueError(f"Criterion {args.kd_loss_type} not found.")
+def build_criterion(data_args, training_args, distiller):
+    if training_args.kd_loss_type not in criterion_list.keys():
+        raise ValueError(f"Criterion {training_args.kd_loss_type} not found.")
     
-    if "gvendi" in args.kd_loss_type:
-        return criterion_list[args.kd_loss_type](args, distiller)
-    return criterion_list[args.kd_loss_type](args)
+    if "gvendi" in training_args.kd_loss_type:
+        return criterion_list[training_args.kd_loss_type](data_args, training_args, distiller)
+    return criterion_list[training_args.kd_loss_type](training_args)

@@ -265,6 +265,8 @@ class DistillationCollator:
         return inputs
     
     def __call__(self, examples):
+        sample_ids = [ex["sample_id"] for ex in examples if ex is not None]
+
         student_qry_inputs = self._get_batch_inputs(examples, "student_query_text", "student_query_image")
         student_pos_inputs = self._get_batch_inputs(examples, "student_pos_text", "student_pos_image")
 
@@ -286,6 +288,7 @@ class DistillationCollator:
         processed_teacher_pos_inputs = process_teacher_fn(teacher_pos_inputs, processor=self.teacher_processor, max_length=self.data_args.max_len)
         
         return {
+            'sample_ids': sample_ids,
             'student_inputs':{
                 'qry': processed_student_qry_inputs,
                 'pos': processed_student_pos_inputs
@@ -300,6 +303,7 @@ class DistillationDataset(Dataset):
     def __init__(self, data_args, model_args):
         self.data_args = data_args
         self.model_args = model_args
+        self.teacher_cache_dir = data_args.teacher_cache_dir
         train_data = []
         
         for subset in data_args.subset_name:
@@ -419,7 +423,7 @@ class DistillationDataset(Dataset):
             teacher_pos_texts.append(teacher_pos_text)
             teacher_pos_images.append(teacher_pos_image)
         # phase 2
-        if self.data_args.need_hash and self.data_args.teacher_cache_dir is not None:
+        if not self.data_args.phase_1:
             sample_id = self.train_data[data_idx]["sample_id"]
             cache_path = os.path.join(self.teacher_cache_dir, f"{sample_id}.pt")
             cached_grads = torch.load(cache_path, weights_only=True)
@@ -441,6 +445,7 @@ class DistillationDataset(Dataset):
         
         # phase 1
         return {
+            "sample_id": self.train_data[data_idx]["sample_id"],
             "student_query_text": student_qry_texts,
             "student_query_image": student_qry_images,
             "student_pos_text": student_pos_texts,

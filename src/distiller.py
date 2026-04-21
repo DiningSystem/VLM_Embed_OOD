@@ -422,28 +422,8 @@ class DistillationDataset(Dataset):
             teacher_qry_images.append(teacher_qry_image)
             teacher_pos_texts.append(teacher_pos_text)
             teacher_pos_images.append(teacher_pos_image)
-        # phase 2
-        if not self.data_args.phase_1:
-            sample_id = self.train_data[data_idx]["sample_id"]
-            cache_path = os.path.join(self.teacher_cache_dir, f"{sample_id}.pt")
-            cached_grads = torch.load(cache_path, weights_only=True)
-
-            return {
-                "sample_id": sample_id,
-                "student_query_text": student_qry_texts,
-                "student_query_image": student_qry_images,
-                "student_pos_text": student_pos_texts,
-                "student_pos_image": student_pos_images,
-                "teacher_query_text": teacher_qry_texts,
-                "teacher_query_image": teacher_qry_images,
-                "teacher_pos_text": teacher_pos_texts,
-                "teacher_pos_image": teacher_pos_images,
-                "cached_gt_v": cached_grads["gt_v"],
-                "cached_gt_t": cached_grads["gt_t"],
-                "cached_gt_f": cached_grads["gt_f"],
-            }            
+   
         
-        # phase 1
         return {
             "sample_id": self.train_data[data_idx]["sample_id"],
             "student_query_text": student_qry_texts,

@@ -121,7 +121,8 @@ class Trainer:
                             disable=not dist.get_rank() == 0)
         for batch_idx, batch in enumerate(self.train_data):
             batch = to_device(batch, self.device)
-            loss_dict = self.distiller(self.criterion, batch)
+            with torch.amp.autocast("cuda", torch.bfloat16):
+                loss_dict = self.distiller(self.criterion, batch)
             total_loss = loss_dict['loss'] / self.training_args.gradient_accumulation_steps
 
             if batch_idx == 0:
@@ -293,6 +294,9 @@ def main():
             optimizer,
             num_warmup_steps=training_args.warmup_ratio * total_steps,
         )
+
+    # gpu_id = int(os.environ['LOCAL_RANK'])
+    # distiller = distiller.to(torch.device(f'cuda:{gpu_id}'))
     criterion = build_criterion(data_args, training_args, distiller)
     trainer = Trainer(distiller, train_dataloader, optimizer, lr_scheduler, criterion, model_args, training_args)
     trainer.train()

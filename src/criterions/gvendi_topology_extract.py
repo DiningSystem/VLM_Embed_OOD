@@ -18,6 +18,19 @@ class VLMDistillConfig:
     block_size:      int   = 4096                   
     num_grad_layers: int   = 1             
 
+def get_last_layer_id(model):
+    layer_ids = []
+
+    for n, _ in model.named_parameters():
+        if "layers" in n:
+            split_name = n.split(".")
+            for i, name in enumerate(split_name):
+                if "layers" in name:
+                    layer_ids.append(int(split_name[i + 1]))
+                    break
+
+    return max(layer_ids)
+            
 
 def _sq_euclidean(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     return (
@@ -126,17 +139,24 @@ class GvendiTopologyExtract(nn.Module):
 
         self.args      = training_args
         self.distiller = distiller
-        self.last_layer_id = 27
+        self.last_layer_id = get_last_layer_id(distiller.teacher)
         cfg = self._build_gvendi_config(training_args)
 
         self.extractor = VLMGradientExtractor(cfg.num_grad_layers, self.last_layer_id)
         self.extracted_layer_ids = self.extractor.extracted_layer_ids
 
-        teacher_dim = self._stream_dims(self.distiller.teacher, self.extractor)
+        teacher_dim = self._stream_dims(distiller.teacher, self.extractor)
         self.proj_T = RademacherProjection(teacher_dim, cfg.proj_dim, 10, cfg.block_size)
         self.io_executor = ThreadPoolExecutor(max_workers=4) 
 
         self.teacher_cache_dir = getattr(data_args, "teacher_cache_dir", None)
+
+        for n, p in distiller.teacher.named_parameters():
+            p.requires_grad_(False)
+
+            for layer_name in self.extracted_layer_ids:
+                if layer_name in n:
+                    p.requires_grad_(True)
 
     @staticmethod
     def _build_gvendi_config(args) -> VLMDistillConfig:
@@ -190,13 +210,6 @@ class GvendiTopologyExtract(nn.Module):
 
         teacher_qry_input = input_data["teacher_inputs"]["qry"]
         teacher_pos_input = input_data["teacher_inputs"]["pos"]
-
-        for n, p in teacher_model.named_parameters():
-            p.requires_grad_(False)
-
-            for layer_name in self.extracted_layer_ids:
-                if layer_name in n:
-                    p.requires_grad_(True)
     
         teacher_model.eval()
 
@@ -224,9 +237,6 @@ class GvendiTopologyExtract(nn.Module):
                 input_data.get("sample_ids", None),
                 grad_teacher,
             )
-
-        for p in teacher_model.parameters():
-            p.requires_grad_(False)
 
         log = {
             "loss": torch.tensor(0.0),

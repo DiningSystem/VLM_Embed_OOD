@@ -29,6 +29,19 @@ def _sq_euclidean(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
         - 2.0 * (a @ b.T)
     ).clamp(min=0.0)
 
+def get_last_layer_id(model):
+    layer_ids = []
+
+    for n, _ in model.named_parameters():
+        if "layers" in n:
+            split_name = n.split(".")
+            for i, name in enumerate(split_name):
+                if "layers" in name:
+                    layer_ids.append(int(split_name[i + 1]))
+                    break
+
+    return max(layer_ids)
+
 
 def _sinkhorn_log(cost: torch.Tensor, reg: float, iters: int) -> torch.Tensor:
     b, K = cost.shape
@@ -156,7 +169,7 @@ class GVendiVLMCriterion(nn.Module):
         cfg = self._build_config(training_args)
         self.cfg = cfg
 
-        self.last_layer_id = getattr(training_args, "last_layer_id", 23)
+        self.last_layer_id = get_last_layer_id(distiller.student)
 
         self.extractor = VLMGradientExtractor(cfg.num_grad_layers, self.last_layer_id)
         self.extracted_layer_ids = self.extractor.extracted_layer_ids

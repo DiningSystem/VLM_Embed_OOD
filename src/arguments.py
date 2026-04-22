@@ -103,6 +103,11 @@ class TrainingArguments(TrainingArguments):
     rkd_distance_weight: float = field(default=1.0, metadata={"help": "weight of distance loss in total kd loss"})
     rkd_angle_weight: float = field(default=2.0, metadata={"help": "weight of angle loss in total kd loss"})
     kd_loss_type: str = field(default="contrastive_rkd", metadata={"help": "type of kd loss, current only support RKD"})
+    w_laplacian_loss: float = field(default=0.5, metadata={"help": "weight of Laplacian spectral consistency loss in total loss"})
+    laplacian_tau: float = field(default=0.07, metadata={"help": "temperature for Laplacian similarity graph"})
+    laplacian_k_eig: int = field(default=10, metadata={"help": "number of smallest Laplacian eigenvalues to match"})
+    laplacian_top_k: int = field(default=0, metadata={"help": "optional top-k neighbors for sparse adjacency; <=0 means dense"})
+    laplacian_eps: float = field(default=1e-6, metadata={"help": "numerical stability epsilon for Laplacian spectral loss"})
     ds_config: str = field(default=None, metadata={"help": "DeepSpeed config json file path"})
     deepspeed_config: str = field(default=None, metadata={"help": "DeepSpeed config json file path"})
     # new args for span loss

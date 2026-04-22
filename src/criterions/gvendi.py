@@ -150,8 +150,13 @@ class GVendiVLMCriterion(nn.Module):
 
         self.args = training_args
 
-        self.w_rkd    = getattr(training_args, "w_rkd_loss",    0.5)
+        self.w_spectral = getattr(training_args, "w_laplacian_loss", 0.5)
         self.w_gvendi = getattr(training_args, "w_gvendi_loss", 1.0)
+        self.laplacian_tau = getattr(training_args, "laplacian_tau", 0.07)
+        self.laplacian_k_eig = getattr(training_args, "laplacian_k_eig", 10)
+        top_k = getattr(training_args, "laplacian_top_k", 0)
+        self.laplacian_top_k = top_k if top_k and top_k > 0 else None
+        self.laplacian_eps = getattr(training_args, "laplacian_eps", 1e-6)
 
         cfg = self._build_config(training_args)
         self.cfg = cfg
@@ -224,34 +229,65 @@ class GVendiVLMCriterion(nn.Module):
         d = min(s_qry.shape[-1], t_qry.shape[-1])
         return ((s_qry[..., :d] - t_qry.detach()[..., :d]) ** 2).sum(dim=-1)
 
+    def compute_laplacian(
+        self,
+        z: torch.Tensor,
+        tau: float,
+        top_k: Optional[int] = None,
+        eps: float = 1e-6,
+    ) -> torch.Tensor:
+        z = F.normalize(z, dim=-1)
+        z = z.to(dtype=torch.float32)
+        sim = z @ z.T
+
+        adjacency = torch.exp((sim / tau).clamp(min=-50.0, max=50.0))
+        adjacency.fill_diagonal_(0.0)
+
+        if top_k is not None and top_k > 0 and top_k < adjacency.size(1):
+            topk_indices = adjacency.topk(top_k, dim=1).indices
+            sparse_mask = torch.zeros_like(adjacency, dtype=torch.bool)
+            sparse_mask.scatter_(1, topk_indices, True)
+            adjacency = adjacency * sparse_mask
+            adjacency = 0.5 * (adjacency + adjacency.T)
+
+        degree = adjacency.sum(dim=1)
+        inv_sqrt_degree = torch.rsqrt(degree + eps)
+        normalized_adj = inv_sqrt_degree.unsqueeze(1) * adjacency * inv_sqrt_degree.unsqueeze(0)
+        identity = torch.eye(z.size(0), device=z.device, dtype=z.dtype)
+        laplacian = identity - normalized_adj
+        return 0.5 * (laplacian + laplacian.T)
+
     @staticmethod
-    def _pairwise_dist(x: torch.Tensor) -> torch.Tensor:
-        n = (x ** 2).sum(1, keepdim=True)
-        return (n + n.T - 2.0 * x @ x.T).clamp(min=0.0)
+    def compute_spectrum(
+        laplacian: torch.Tensor,
+        k_eig: int,
+        eps: float = 1e-6,
+    ) -> torch.Tensor:
+        eigvals = torch.linalg.eigvalsh(laplacian).to(dtype=torch.float32)
+        eigvals = torch.clamp(eigvals, min=0.0)
+        k = min(max(int(k_eig), 1), eigvals.numel())
+        low_freq = eigvals[:k]
+        low_freq = low_freq / (low_freq.sum() + eps)
+        return torch.clamp(low_freq, min=eps)
 
-    def _rkd_distance(self, s_qry, s_pos, t_qry, t_pos) -> torch.Tensor:
-        ds = self._pairwise_dist(torch.cat([s_qry, s_pos]))
-        dt = self._pairwise_dist(torch.cat([t_qry, t_pos]))
-        mask = torch.triu(torch.ones_like(ds, dtype=torch.bool), diagonal=1)
-        ds, dt = ds[mask], dt[mask]
-        ds = ds / (ds.mean().detach() + 1e-8)
-        dt = dt / (dt.mean().detach() + 1e-8)
-        diff = (ds - dt).abs()
-        return torch.where(diff < 1.0, 0.5 * diff ** 2, diff - 0.5).mean()
+    def spectral_loss(
+        self,
+        z_small: torch.Tensor,
+        z_large: torch.Tensor,
+        tau: float,
+        k_eig: int,
+        top_k: Optional[int],
+        eps: float = 1e-6,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        l_small = self.compute_laplacian(z_small, tau=tau, top_k=top_k, eps=eps)
+        l_large = self.compute_laplacian(z_large, tau=tau, top_k=top_k, eps=eps)
+        p_small = self.compute_spectrum(l_small, k_eig=k_eig, eps=eps)
+        p_large = self.compute_spectrum(l_large, k_eig=k_eig, eps=eps).detach()
 
-    def _rkd_angle(self, s_qry, s_pos, t_qry, t_pos) -> torch.Tensor:
-        def _angles(x):
-            d = x.unsqueeze(0) - x.unsqueeze(1)
-            e = d / (d.norm(dim=-1, keepdim=True) + 1e-8)
-            return torch.einsum("ijd,kjd->ijk", e, e)
-        ps = _angles(torch.cat([s_qry, s_pos]))
-        pt = _angles(torch.cat([t_qry, t_pos]))
-        n  = ps.shape[0]
-        idx  = torch.arange(n, device=ps.device)
-        mask = torch.ones(n, n, n, dtype=torch.bool, device=ps.device)
-        mask[idx, idx, :] = mask[idx, :, idx] = mask[:, idx, idx] = False
-        diff = (ps[mask] - pt[mask]).abs()
-        return torch.where(diff < 1.0, 0.5 * diff ** 2, diff - 0.5).mean()
+        kl_s_to_t = (p_small * torch.log((p_small + eps) / (p_large + eps))).sum()
+        kl_t_to_s = (p_large * torch.log((p_large + eps) / (p_small + eps))).sum()
+        loss = 0.5 * (kl_s_to_t + kl_t_to_s)
+        return loss, p_small, p_large
 
     def forward(self, distiller, input_data: Dict) -> Dict[str, torch.Tensor]:
         cfg           = self.cfg
@@ -281,10 +317,14 @@ class GVendiVLMCriterion(nn.Module):
         targets *= all_s_qry.size(0) // all_s_pos.size(0)
         L_contrastive = nn.CrossEntropyLoss()(scores / distiller.temperature, targets)
 
-        L_rkd = (
-            self._rkd_distance(s_qry_reps, s_pos_reps, t_qry_reps, t_pos_reps)
-            + self._rkd_angle  (s_qry_reps, s_pos_reps, t_qry_reps, t_pos_reps)
-        ) / 2.0
+        L_spectral, p_small, p_large = self.spectral_loss(
+            z_small=torch.cat([s_qry_reps, s_pos_reps], dim=0),
+            z_large=torch.cat([t_qry_reps, t_pos_reps], dim=0),
+            tau=self.laplacian_tau,
+            k_eig=self.laplacian_k_eig,
+            top_k=self.laplacian_top_k,
+            eps=self.laplacian_eps,
+        )
 
         sample_ids  = input_data["sample_ids"]           
         gt_projected = self._load_cached_teacher(sample_ids, device)  
@@ -319,14 +359,16 @@ class GVendiVLMCriterion(nn.Module):
 
         total_loss = (
             L_contrastive
-            + self.w_rkd    * L_rkd
+            + self.w_spectral * L_spectral
             + self.w_gvendi * L_gvendi
         )
 
         return {
             "loss":              total_loss,
             "contrastive_loss":  L_contrastive,
-            "rkd_loss":          L_rkd,
+            "laplacian_spec_loss": L_spectral,
+            "laplacian_spec_student_min": p_small.min(),
+            "laplacian_spec_teacher_min": p_large.min(),
             "gvendi_ot":         L_OT,
             "gvendi_commit":     L_commit,
             "gvendi_total":      L_gvendi,

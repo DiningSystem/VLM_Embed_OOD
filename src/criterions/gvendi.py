@@ -41,7 +41,7 @@ def _sinkhorn_log(cost: torch.Tensor, reg: float, iters: int) -> torch.Tensor:
     for _ in range(iters):
         log_u = log_a - torch.logsumexp(log_v.unsqueeze(0) - M, dim=1)
         log_v = log_b - torch.logsumexp(log_u.unsqueeze(1) - M, dim=0)
-    return (log_u.unsqueeze(1) + log_v.unsqueeze(0) - M).exp()
+    return (log_u.unsqueeze(1) + log_v.unsqueeze(0) - M).exp().detach()
 
 
 class RademacherProjection(nn.Module):

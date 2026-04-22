@@ -86,6 +86,11 @@ torchrun --standalone \
     --lr_scheduler_type "cosine" \
     --warmup_ratio 0.03 \
     --kd_weight 2.5 \
+    --w_laplacian_loss 0.5 \
+    --laplacian_tau 0.07 \
+    --laplacian_k_eig 10 \
+    --laplacian_top_k 0 \
+    --laplacian_eps 1e-6 \
     --w_cross_modal_loss 2.5 \
     --kd_loss_type "gvendi_phase2" \
     --image_resolution "low" \

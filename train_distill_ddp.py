@@ -71,8 +71,16 @@ def to_device(obj, device):
         return obj
 
 def ddp_setup():
+    backend = os.environ.get("DDP_BACKEND", "nccl").lower()
+    # Some multi-GPU environments (mixed PCIe / virtualization) do not support
+    # NCCL P2P/IB features and can fail with "Cuda failure 'operation not supported'".
+    # Keep these as defaults while still allowing users to override explicitly.
+    if backend == "nccl":
+        os.environ.setdefault("NCCL_P2P_DISABLE", "1")
+        os.environ.setdefault("NCCL_IB_DISABLE", "1")
+        os.environ.setdefault("NCCL_ASYNC_ERROR_HANDLING", "1")
     torch.cuda.set_device(int(os.environ['LOCAL_RANK']))
-    init_process_group(backend="nccl")
+    init_process_group(backend=backend)
 
 class Trainer:
     def __init__(self, distiller, train_data, optimizer, lr_scheduler, criterion, model_args, training_args):
@@ -87,7 +95,10 @@ class Trainer:
         self.model_args = model_args
         self.training_args = training_args
         
-        self.distiller = DDP(self.distiller, device_ids=[self.gpu_id])
+        if dist.get_backend() == "nccl":
+            self.distiller = DDP(self.distiller, device_ids=[self.gpu_id])
+        else:
+            self.distiller = DDP(self.distiller)
     
     def _debug_batch_devices(self, obj, prefix=""):
         if obj is None:
@@ -303,5 +314,8 @@ def main():
     
 if __name__ == "__main__":
     ddp_setup()
-    main()
-    destroy_process_group()
+    try:
+        main()
+    finally:
+        if dist.is_initialized():
+            destroy_process_group()

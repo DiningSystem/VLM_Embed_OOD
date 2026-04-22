@@ -26,6 +26,8 @@ from transformers.integrations import HfDeepSpeedConfig
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 # Todo
+#import torch
+#torch.autograd.set_detect_anomaly(True)
 
 def get_optimizer_params(model, training_args):
     param_optimizer = list(model.named_parameters())
@@ -78,7 +80,7 @@ def ddp_setup():
     os.environ.setdefault("NCCL_IB_DISABLE", "1")
     os.environ.setdefault("NCCL_ASYNC_ERROR_HANDLING", "1")
     torch.cuda.set_device(int(os.environ['LOCAL_RANK']))
-    init_process_group(backend="nccl")
+    init_process_group(backend="gloo")
 
 class Trainer:
     def __init__(self, distiller, train_data, optimizer, lr_scheduler, criterion, model_args, training_args):

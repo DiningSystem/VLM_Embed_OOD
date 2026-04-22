@@ -73,6 +73,12 @@ def to_device(obj, device):
         return obj
 
 def ddp_setup():
+    # Some multi-GPU environments (mixed PCIe / virtualization) do not support
+    # NCCL P2P/IB features and can fail with "Cuda failure 'operation not supported'".
+    # Keep these as defaults while still allowing users to override explicitly.
+    os.environ.setdefault("NCCL_P2P_DISABLE", "1")
+    os.environ.setdefault("NCCL_IB_DISABLE", "1")
+    os.environ.setdefault("NCCL_ASYNC_ERROR_HANDLING", "1")
     torch.cuda.set_device(int(os.environ['LOCAL_RANK']))
     init_process_group(backend="gloo")
 
@@ -305,5 +311,8 @@ def main():
     
 if __name__ == "__main__":
     ddp_setup()
-    main()
-    destroy_process_group()
+    try:
+        main()
+    finally:
+        if dist.is_initialized():
+            destroy_process_group()

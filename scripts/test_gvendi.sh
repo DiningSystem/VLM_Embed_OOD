@@ -3,7 +3,10 @@ NUM_GPUS_PER_NODE=1
 TRAIN_SCRIPT="gvendi_phase1.py"
 teacher_cache_dir="/home/gdi-user/.cache/huggingface/hub/models--dangnguyens1--teacher_gradients/mnt/disk1/backup_user/dang.nh4/VLM_Embed/teacher_grad_dir"
 
-#export TORCH_DISTRIBUTED_DEBUG=DETAIL
+export TORCH_DISTRIBUTED_DEBUG=DETAIL
+export NCCL_P2P_DISABLE=1
+export NCCL_IB_DISABLE=1
+export NCCL_ASYNC_ERROR_HANDLING=1
 
 #export CUDA_VISIBLE_DEVICES=0
 

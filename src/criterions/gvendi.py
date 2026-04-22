@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import os
+import warnings
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
@@ -92,6 +93,7 @@ class VLMGradientExtractor:
     def __init__(self, num_layers: int, last_layer_id: int):
         self.num_layers   = num_layers
         self.last_layer_id = last_layer_id
+        self._use_batched_vjp = True
         self.extracted_layer_ids = [
             f"layers.{last_layer_id - i}."
             for i in range(num_layers)
@@ -112,38 +114,54 @@ class VLMGradientExtractor:
         b   = per_sample_loss.size(0)
         eye = torch.eye(b, device=per_sample_loss.device, dtype=per_sample_loss.dtype)
 
-        try:
-            batched_grads = torch.autograd.grad(
-                outputs=per_sample_loss,
+        if self._use_batched_vjp:
+            try:
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        message="Error detected in .*Backward.*",
+                        category=UserWarning,
+                        module="torch.autograd.graph",
+                    )
+                    batched_grads = torch.autograd.grad(
+                        outputs=per_sample_loss,
+                        inputs=params,
+                        grad_outputs=eye,
+                        retain_graph=retain_graph,
+                        create_graph=False,
+                        allow_unused=True,
+                        is_grads_batched=True,
+                    )
+                parts = []
+                for g, p in zip(batched_grads, params):
+                    parts.append(g.reshape(b, -1) if g is not None
+                                 else p.new_zeros(b, p.numel()))
+                return torch.cat(parts, dim=1)   # (b, ΣD)
+            except RuntimeError as e:
+                if "Batching rule not implemented for aten::item" not in str(e):
+                    raise
+                self._use_batched_vjp = False
+
+        param_numels = [p.numel() for p in params]
+        offsets = [0]
+        for n in param_numels:
+            offsets.append(offsets[-1] + n)
+        sample_grads = per_sample_loss.new_zeros((b, offsets[-1]))
+        for i in range(b):
+            grads_i = torch.autograd.grad(
+                outputs=per_sample_loss[i],
                 inputs=params,
-                grad_outputs=eye,
-                retain_graph=retain_graph,
+                retain_graph=retain_graph or (i < b - 1),
                 create_graph=False,
                 allow_unused=True,
-                is_grads_batched=True,
             )
-        except RuntimeError as e:
-            if "Batching rule not implemented for aten::item" not in str(e):
-                raise
-            sample_grads = []
-            for i in range(b):
-                grads_i = torch.autograd.grad(
-                    outputs=per_sample_loss[i],
-                    inputs=params,
-                    retain_graph=True,
-                    create_graph=False,
-                    allow_unused=True,
-                )
-                flat_i = []
-                for g, p in zip(grads_i, params):
-                    flat_i.append(g.reshape(-1) if g is not None else p.new_zeros(p.numel()))
-                sample_grads.append(torch.cat(flat_i, dim=0))
-            return torch.stack(sample_grads, dim=0)
-        parts = []
-        for g, p in zip(batched_grads, params):
-            parts.append(g.reshape(b, -1) if g is not None
-                         else p.new_zeros(b, p.numel()))
-        return torch.cat(parts, dim=1)   # (b, ΣD)
+            for j, (g, p) in enumerate(zip(grads_i, params)):
+                start, end = offsets[j], offsets[j + 1]
+                if g is not None:
+                    sample_grads[i, start:end] = g.reshape(-1)
+                else:
+                    sample_grads[i, start:end] = p.new_zeros(param_numels[j])
+        return sample_grads
 
     def extract(
         self,

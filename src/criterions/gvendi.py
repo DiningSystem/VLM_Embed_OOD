@@ -112,15 +112,33 @@ class VLMGradientExtractor:
         b   = per_sample_loss.size(0)
         eye = torch.eye(b, device=per_sample_loss.device, dtype=per_sample_loss.dtype)
 
-        batched_grads = torch.autograd.grad(
-            outputs=per_sample_loss,
-            inputs=params,
-            grad_outputs=eye,
-            retain_graph=retain_graph,
-            create_graph=False,
-            allow_unused=True,
-            is_grads_batched=True,
-        )
+        try:
+            batched_grads = torch.autograd.grad(
+                outputs=per_sample_loss,
+                inputs=params,
+                grad_outputs=eye,
+                retain_graph=retain_graph,
+                create_graph=False,
+                allow_unused=True,
+                is_grads_batched=True,
+            )
+        except RuntimeError as e:
+            if "Batching rule not implemented for aten::item" not in str(e):
+                raise
+            sample_grads = []
+            for i in range(b):
+                grads_i = torch.autograd.grad(
+                    outputs=per_sample_loss[i],
+                    inputs=params,
+                    retain_graph=True,
+                    create_graph=False,
+                    allow_unused=True,
+                )
+                flat_i = []
+                for g, p in zip(grads_i, params):
+                    flat_i.append(g.reshape(-1) if g is not None else p.new_zeros(p.numel()))
+                sample_grads.append(torch.cat(flat_i, dim=0))
+            return torch.stack(sample_grads, dim=0)
         parts = []
         for g, p in zip(batched_grads, params):
             parts.append(g.reshape(b, -1) if g is not None
@@ -241,7 +259,8 @@ class GVendiVLMCriterion(nn.Module):
         sim = z @ z.T
 
         adjacency = torch.exp((sim / tau).clamp(min=-50.0, max=50.0))
-        adjacency.fill_diagonal_(0.0)
+        diag_mask = ~torch.eye(adjacency.size(0), device=adjacency.device, dtype=torch.bool)
+        adjacency = adjacency * diag_mask
 
         if top_k is not None and top_k > 0 and top_k < adjacency.size(1):
             topk_indices = adjacency.topk(top_k, dim=1).indices

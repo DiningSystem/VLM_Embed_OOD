@@ -1,7 +1,7 @@
-NUM_GPUS_PER_NODE=2
+NUM_GPUS_PER_NODE=1
 
 TRAIN_SCRIPT="gvendi_phase1.py"
-teacher_cache_dir="./teacher_grad_dir/"
+teacher_cache_dir="/home/gdi-user/.cache/huggingface/hub/models--dangnguyens1--teacher_gradients/mnt/disk1/backup_user/dang.nh4/VLM_Embed/teacher_grad_dir"
 
 export TORCH_DISTRIBUTED_DEBUG=DETAIL
 export DDP_BACKEND=gloo
@@ -9,7 +9,7 @@ export NCCL_P2P_DISABLE=1
 export NCCL_IB_DISABLE=1
 export NCCL_ASYNC_ERROR_HANDLING=1
 
-export CUDA_VISIBLE_DEVICES=5,6
+#export CUDA_VISIBLE_DEVICES=0
 
 # phase 1 training
 # torchrun --standalone \
@@ -56,8 +56,11 @@ export CUDA_VISIBLE_DEVICES=5,6
 
 # phase 2 training
 TRAIN_SCRIPT="train_distill_ddp.py"
-torchrun --standalone \
-    --nproc_per_node=$NUM_GPUS_PER_NODE $TRAIN_SCRIPT \
+#torchrun --standalone \
+torchrun \
+    --standalone \
+    --nproc_per_node=1 \
+    --master_port=29510 $TRAIN_SCRIPT \
     --model_name apple/FastVLM-0.5B \
     --teacher_model_name "raghavlite/B3_Qwen2_2B" \
     --lora True \
@@ -72,7 +75,7 @@ torchrun --standalone \
     --dataset_name "TIGER-Lab/MMEB-train" \
     --subset_name "ImageNet_1K" "N24News" "HatefulMemes" "VOC2007" "SUN397" \
     --dataset_split "original" \
-    --image_dir "/mnt/disk1/backup_user/dang.nh4/vlm2vec_train/MMEB-train" \
+    --image_dir "/home/gdi-user/enguyen/research_vllm/test/VLM_Embed/vlm2vec_train/MMEB-train" \
     --percent_data 1.0 \
     --output_dir "training/gvendi_phase2" \
     --per_device_train_batch_size 8 \
@@ -102,3 +105,4 @@ torchrun --standalone \
     --need_hash True \
     --teacher_cache_dir $teacher_cache_dir \
     --phase_1 False \
+    --report_to wandb

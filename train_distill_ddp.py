@@ -26,6 +26,8 @@ from transformers.integrations import HfDeepSpeedConfig
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 # Todo
+#import torch
+#torch.autograd.set_detect_anomaly(True)
 
 def get_optimizer_params(model, training_args):
     param_optimizer = list(model.named_parameters())

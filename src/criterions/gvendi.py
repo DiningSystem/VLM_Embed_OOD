@@ -30,6 +30,19 @@ def _sq_euclidean(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
         - 2.0 * (a @ b.T)
     ).clamp(min=0.0)
 
+def get_last_layer_id(model):
+    layer_ids = []
+
+    for n, params in model.named_parameters():
+        if "layers" in n and params.requires_grad:
+            split_name = n.split(".")
+            for i, name in enumerate(split_name):
+                if "layers" in name:
+                    layer_ids.append(int(split_name[i + 1]))
+                    break
+    print("Extracting gradients from layers:", sorted(set(layer_ids)))
+    return max(layer_ids)
+
 
 def _sinkhorn_log(cost: torch.Tensor, reg: float, iters: int) -> torch.Tensor:
     b, K = cost.shape
@@ -197,7 +210,7 @@ class GVendiVLMCriterion(nn.Module):
         cfg = self._build_config(training_args)
         self.cfg = cfg
 
-        self.last_layer_id = getattr(training_args, "last_layer_id", 23)
+        self.last_layer_id = get_last_layer_id(distiller.student)
 
         self.extractor = VLMGradientExtractor(cfg.num_grad_layers, self.last_layer_id)
         self.extracted_layer_ids = self.extractor.extracted_layer_ids
@@ -243,6 +256,20 @@ class GVendiVLMCriterion(nn.Module):
         dist.all_gather(bufs, t)
         bufs[self.process_rank] = t
         return torch.cat(bufs, dim=0)
+
+    def _check_cached_teacher_exists(
+        self,
+        sample_ids: List[str],
+    ) -> bool:
+
+        if self.teacher_cache_dir is None:
+            return False
+        
+        for sid in sample_ids:
+            path = os.path.join(self.teacher_cache_dir, f"{sid}.pt")
+            if not os.path.isfile(path):
+                return False
+        return True
 
     def _load_cached_teacher(
         self,
@@ -337,6 +364,11 @@ class GVendiVLMCriterion(nn.Module):
         teacher_pos_input = input_data["teacher_inputs"]["pos"]
         device = student_qry_input["input_ids"].device
 
+        sample_ids  = input_data["sample_ids"]
+        
+        if not self._check_cached_teacher_exists(sample_ids):
+            return {"skip_batch": True}
+        
         with torch.no_grad():
             teacher_model.eval()
             t_qry_reps, *_ = teacher_model.encode_input(teacher_qry_input)

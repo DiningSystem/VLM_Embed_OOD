@@ -1,7 +1,7 @@
 NUM_GPUS_PER_NODE=1
 
 TRAIN_SCRIPT="gvendi_phase1.py"
-teacher_cache_dir="/home/gdi-user/.cache/huggingface/hub/models--dangnguyens1--teacher_gradients/mnt/disk1/backup_user/dang.nh4/VLM_Embed/teacher_grad_dir"
+teacher_cache_dir="/home/gdi-user/.cache/huggingface/hub/models--dangnguyens1--teacher_gradients/mnt/disk1/backup_user/dang.nh4/VLM_Embed/teacher_gradients/qwen2b_cls_grad/"
 
 #export TORCH_DISTRIBUTED_DEBUG=DETAIL
 
@@ -74,7 +74,7 @@ torchrun \
     --image_dir "/home/gdi-user/enguyen/research_vllm/test/VLM_Embed/vlm2vec_train/MMEB-train" \
     --percent_data 1.0 \
     --output_dir "training/gvendi_phase2" \
-    --per_device_train_batch_size 8 \
+    --per_device_train_batch_size 10 \
     --gradient_accumulation_steps 1 \
     --learning_rate 1e-4 \
     --num_train_epochs 1 \

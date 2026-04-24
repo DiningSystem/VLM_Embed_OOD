@@ -7,7 +7,7 @@ python eval_mmeb.py \
     --normalize True \
     --bf16 \
     --dataset_name TIGER-Lab/MMEB-eval \
-    --subset_name  "ImageNet_1K" "N24News" "HatefulMemes" "VOC2007" "SUN397" "Place365" "ImageNet-A" "ImageNet-R" "ObjectNet" "Country-211" \
+    --subset_name  "ImageNet-1K" "N24News" "HatefulMemes" "VOC2007" "SUN397" "Place365" "ImageNet-A" "ImageNet-R" "ObjectNet" "Country211" \
     --dataset_split test \
     --per_device_eval_batch_size 8 \
     --image_dir "/home/gdi-user/enguyen/research_vllm/test/VLM_Embed/eval_images" \

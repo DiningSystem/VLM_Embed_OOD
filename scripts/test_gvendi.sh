@@ -73,8 +73,8 @@ torchrun \
     --dataset_split "original" \
     --image_dir "/home/gdi-user/enguyen/research_vllm/test/VLM_Embed/vlm2vec_train/MMEB-train" \
     --percent_data 1.0 \
-    --output_dir "training/gvendi_phase2" \
-    --per_device_train_batch_size 10 \
+    --output_dir "training/gvendi_phase2_2" \
+    --per_device_train_batch_size 8 \
     --gradient_accumulation_steps 1 \
     --learning_rate 1e-4 \
     --num_train_epochs 1 \
@@ -89,11 +89,11 @@ torchrun \
     --lr_scheduler_type "cosine" \
     --warmup_ratio 0.03 \
     --kd_weight 2.5 \
-    --w_laplacian_loss 0.5 \
+    --w_laplacian_loss 0.6 \
     --laplacian_tau 0.07 \
-    --laplacian_k_eig 10 \
+    --laplacian_k_eig 8 \
     --laplacian_top_k 0 \
-    --laplacian_eps 1e-6 \
+    --laplacian_eps 1e-7 \
     --w_cross_modal_loss 2.5 \
     --kd_loss_type "gvendi_phase2" \
     --image_resolution "low" \

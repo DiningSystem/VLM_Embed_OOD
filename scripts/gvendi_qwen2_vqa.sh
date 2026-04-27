@@ -1,10 +1,10 @@
-NUM_GPUS_PER_NODE=1
+NUM_GPUS_PER_NODE=2
 TRAIN_SCRIPT="gvendi_phase1.py"
 teacher_cache_dir="./teacher_gradients/qwen2b_vqa_grad/"
 
 export TORCH_DISTRIBUTED_DEBUG=DETAIL
 
-export CUDA_VISIBLE_DEVICES=7
+export CUDA_VISIBLE_DEVICES=5,6
 
 # phase 1 training
 # torchrun --standalone \

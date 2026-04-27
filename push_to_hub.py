@@ -106,15 +106,15 @@ def push_zip_to_hub(repo_name=None, token=None, zip_file=None,
         return False
     
 if __name__ == "__main__":
-    # push_to_hub(
-    #     repo_name="dangnguyens1/meta_train",
-    #     token="",
-    #     local_dir="/home/dang.nh4/VLM_Embed/meta_train/"
-    # )
-    
-    push_zip_to_hub(
-        repo_name="dangnguyens1/teacher_gradients",
+    push_to_hub(
+        repo_name="dangnguyens1/meta_train",
         token="",
-        zip_file="/mnt/disk1/backup_user/dang.nh4/VLM_Embed/qwenvl_2b_cls_vqa_grad.zip",
-        commit_message="Upload zip file"
+        local_dir="/mnt/disk1/backup_user/dang.nh4/VLM_Embed/training"
     )
+    
+    # push_zip_to_hub(
+    #     repo_name="dangnguyens1/teacher_gradients",
+    #     token="",
+    #     zip_file="/mnt/disk1/backup_user/dang.nh4/VLM_Embed/qwenvl_2b_cls_vqa_grad.zip",
+    #     commit_message="Upload zip file"
+    # )

@@ -342,7 +342,7 @@ class DistillationDataset(Dataset):
                 return {"sample_id": hashlib.md5(full_item.encode('utf-8')).hexdigest()}
             
             self.train_data = self.train_data.map(generate_hash_id)
-
+        print("LENNNNNNN BEFORE", len(self.train_data))
         if self.teacher_cache_dir and os.path.isdir(self.teacher_cache_dir):
             
             if not self.data_args.phase_1:
@@ -354,6 +354,7 @@ class DistillationDataset(Dataset):
                     return os.path.isfile(grad_path)
                 
                 self.train_data = self.train_data.filter(has_cached_gradient)
+                print("LENNNNNNN AFTER", len(self.train_data))
             else:
                 def has_cached_gradient(example):
                     sample_id = example.get("sample_id")

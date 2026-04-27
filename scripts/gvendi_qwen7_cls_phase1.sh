@@ -2,6 +2,7 @@ NUM_GPUS_PER_NODE=1
 
 TRAIN_SCRIPT="gvendi_phase1.py"
 teacher_cache_dir="./teacher_gradients/qwen7b_cls_grad"
+GVENDI_CODEBOOK_METHOD="${GVENDI_CODEBOOK_METHOD:-sinkhorn}"
 
 export TORCH_DISTRIBUTED_DEBUG=DETAIL
 
@@ -48,4 +49,5 @@ torchrun --standalone \
     --projector_lr 5e-4 \
     --need_hash True \
     --teacher_cache_dir $teacher_cache_dir \
+    --gvendi_codebook_method "$GVENDI_CODEBOOK_METHOD" \
     --phase_1 True \

@@ -2,6 +2,7 @@ NUM_GPUS_PER_NODE=1
 
 #TRAIN_SCRIPT="gvendi_phase1.py"
 teacher_cache_dir="/home/gdi-user/.cache/huggingface/hub/models--dangnguyens1--teacher_gradients/mnt/disk1/backup_user/dang.nh4/VLM_Embed/teacher_gradients/qwen2b_cls_grad/"
+GVENDI_CODEBOOK_METHOD="${GVENDI_CODEBOOK_METHOD:-sinkhorn}"
 
 
 export TORCH_DISTRIBUTED_DEBUG=DETAIL
@@ -50,4 +51,5 @@ torchrun --standalone \
     --projector_lr 5e-4 \
     --need_hash True \
     --teacher_cache_dir $teacher_cache_dir \
+    --gvendi_codebook_method "$GVENDI_CODEBOOK_METHOD" \
     --phase_1 False \

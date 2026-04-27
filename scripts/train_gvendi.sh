@@ -1,3 +1,4 @@
+GVENDI_CODEBOOK_METHOD="${GVENDI_CODEBOOK_METHOD:-sinkhorn}"
 NUM_GPUS_PER_NODE=1
 
 TRAIN_SCRIPT="train_distill_ddp.py"
@@ -44,7 +45,8 @@ torchrun --standalone \
     --w_cross_modal_loss 2.5 \
     --kd_loss_type "gvendi_phase1" \
     --image_resolution "low" \
-    --projector_lr 5e-4
+    --projector_lr 5e-4 \
+    --gvendi_codebook_method "$GVENDI_CODEBOOK_METHOD"
 
 # torchrun --standalone \
 #     --nproc_per_node=$NUM_GPUS_PER_NODE $TRAIN_SCRIPT \
@@ -83,4 +85,5 @@ torchrun --standalone \
 #     --w_cross_modal_loss 2.5 \
 #     --kd_loss_type "gvendi" \
 #     --image_resolution "low" \
-#     --projector_lr 5e-4
+#     --projector_lr 5e-4 \
+#     --gvendi_codebook_method "$GVENDI_CODEBOOK_METHOD"

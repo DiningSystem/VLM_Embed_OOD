@@ -21,6 +21,7 @@ class VLMDistillConfig:
     lam_ot:          float = 1.2
     lam_commit:      float = 1.0
     num_grad_layers: int   = 1
+    codebook_method: str   = "sinkhorn"
 
 def _sq_euclidean(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     return (
@@ -202,6 +203,7 @@ class GVendiVLMCriterion(nn.Module):
             lam_ot          = getattr(args, "gvendi_lam_ot",          1.2),
             lam_commit      = getattr(args, "gvendi_lam_commit",      1.0),
             num_grad_layers = getattr(args, "gvendi_num_grad_layers",   1),
+            codebook_method = getattr(args, "gvendi_codebook_method", "sinkhorn").lower(),
         )
 
     @staticmethod
@@ -333,11 +335,21 @@ class GVendiVLMCriterion(nn.Module):
         gs_aligned   = self.pj.to(device)(gs_projected)                       
 
         C     = self.book.normalized.to(device)                     # (K, d)
-        cost  = _sq_euclidean(gt_projected, C)                     # (b, K)
+        cost  = _sq_euclidean(gt_projected, C)                      # (b, K)
         with torch.no_grad():
-            gamma  = _sinkhorn_log(cost, cfg.sinkhorn_reg, cfg.sinkhorn_iters)
-            k_star = cost.argmin(dim=1)                            # (b,)
-        L_OT = (gamma * cost).sum()
+            k_star = cost.argmin(dim=1)                             # (b,)
+
+        if cfg.codebook_method == "sinkhorn":
+            with torch.no_grad():
+                gamma = _sinkhorn_log(cost, cfg.sinkhorn_reg, cfg.sinkhorn_iters)
+            L_OT = (gamma * cost).sum()
+        elif cfg.codebook_method == "kmeans":
+            L_OT = cost.gather(1, k_star.unsqueeze(1)).sum()
+        else:
+            raise ValueError(
+                f"Unsupported gvendi_codebook_method: {cfg.codebook_method}. "
+                "Expected 'sinkhorn' or 'kmeans'."
+            )
 
         centroid_targets = C.detach()[k_star]                       # (b, d)
         L_commit = F.mse_loss(gs_aligned, centroid_targets, reduction="sum")

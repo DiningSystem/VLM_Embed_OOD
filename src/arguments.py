@@ -120,6 +120,7 @@ class TrainingArguments(TrainingArguments):
         metadata={"help": "List of split layers for student; number of elements equals number of projectors"}   
     )
     w_cross_modal_loss: float = field(default=1.0, metadata={"help": "weight for cross modal loss"})
+    gvendi_codebook_method: str = field(default="sinkhorn", metadata={"help": "Codebook assignment method for GVendi phase2: sinkhorn or kmeans"})
 @dataclass
 class MTEBArguments:
     device: str = field(default="cuda", metadata={"help": "use cuda for single GPU inference, if multiple GPUs are available it will use DP automatically"})

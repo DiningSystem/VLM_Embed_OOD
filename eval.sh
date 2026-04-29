@@ -1,14 +1,14 @@
 python eval_mmeb.py \
-    --model_name /workspace/ComfyUI/models/gligen/VLM_Embed/training/propose_cls/checkpoint-epoch-0 \
-    --encode_output_path ./MMEB-evaloutputs/test_mscoco_v2/ \
+    --model_name ./training/gvendi_kmeans_phase2/checkpoint-final\
+    --encode_output_path ./MMEB-evaloutputs/gvendi_kmeans/ \
     --lora --lora_r 64 --lora_alpha 64 \
     --pooling eos \
     --model_backbone llava_qwen2 \
     --normalize True \
     --bf16 \
     --dataset_name TIGER-Lab/MMEB-eval \
-    --subset_name  MSCOCO \
+    --subset_name  "ImageNet-1K" "N24News" "HatefulMemes" "VOC2007" "SUN397" "Place365" "ImageNet-A" "ImageNet-R" "ObjectNet" "Country211"\
     --dataset_split test \
     --per_device_eval_batch_size 16 \
-    --image_dir eval_images/ \
+    --image_dir "/home/gdi-user/enguyen/research_vllm/test/VLM_Embed/eval_images" \
     --tgt_prefix_mod

@@ -208,8 +208,9 @@ class Distiller(nn.Module):
         else:
             for _ in range(len(self.training_args.teacher_layer_mapping)):
                 projector = nn.Linear(
-                    self.student_hidden_dim,
                     self.teacher_hidden_dim,
+                    self.student_hidden_dim,
+                    
                     dtype=torch.bfloat16
                 )
                 projector_list.append(projector)

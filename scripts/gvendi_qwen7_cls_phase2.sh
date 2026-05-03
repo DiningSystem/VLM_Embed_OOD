@@ -1,19 +1,18 @@
-#!/bin/bash
-
-# Số lượng GPU trên mỗi node (máy)
 NUM_GPUS_PER_NODE=1
 
-# Đường dẫn tới file script training của bạn
-TRAIN_SCRIPT="train_distill_ddp.py"
+#TRAIN_SCRIPT="gvendi_phase1.py"
+teacher_cache_dir="./teacher_gradients/qwen7b_cls_grad"
+GVENDI_CODEBOOK_METHOD="${GVENDI_CODEBOOK_METHOD:-sinkhorn}"
 
 export TORCH_DISTRIBUTED_DEBUG=DETAIL
 
-# =========================================================================
-# Dùng torchrun để khởi chạy
-# =========================================================================
+export CUDA_VISIBLE_DEVICES=0
+
+#phase 1 training
+TRAIN_SCRIPT="train_distill_ddp.py"
 torchrun --standalone \
     --nproc_per_node=$NUM_GPUS_PER_NODE $TRAIN_SCRIPT \
-    --model_name "apple/FastVLM-0.5B" \
+    --model_name apple/FastVLM-0.5B \
     --teacher_model_name "raghavlite/B3_Qwen2_7B" \
     --lora True \
     --teacher_lora True \
@@ -29,7 +28,7 @@ torchrun --standalone \
     --dataset_split "original" \
     --image_dir "/home/gdi-user/enguyen/research_vllm/test/VLM_Embed/vlm2vec_train/MMEB-train" \
     --percent_data 1.0 \
-    --output_dir "training/meta_emo_qwen7B_cls" \
+    --output_dir "training/gvendi_qwen7_phase2" \
     --per_device_train_batch_size 8 \
     --gradient_accumulation_steps 1 \
     --learning_rate 1e-4 \
@@ -44,8 +43,12 @@ torchrun --standalone \
     --teacher_normalize True \
     --lr_scheduler_type "cosine" \
     --warmup_ratio 0.03 \
-    --kd_weight 0.3 \
-    --kd_loss_type "emo_loss" \
+    --kd_weight 2.5 \
+    --w_cross_modal_loss 2.5 \
+    --kd_loss_type "gvendi_phase2" \
     --image_resolution "low" \
-    --projector_config_path "./config/projector_config_emo.json" \
-    --projector_lr 5e-4
+    --projector_lr 5e-4 \
+    --need_hash True \
+    --teacher_cache_dir $teacher_cache_dir \
+    --gvendi_codebook_method "$GVENDI_CODEBOOK_METHOD" \
+    --phase_1 False \

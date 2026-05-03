@@ -1,6 +1,7 @@
 NUM_GPUS_PER_NODE=2
 TRAIN_SCRIPT="gvendi_phase1.py"
 teacher_cache_dir="./teacher_gradients/qwen2b_ground_grad/"
+GVENDI_CODEBOOK_METHOD="${GVENDI_CODEBOOK_METHOD:-sinkhorn}"
 
 export TORCH_DISTRIBUTED_DEBUG=DETAIL
 

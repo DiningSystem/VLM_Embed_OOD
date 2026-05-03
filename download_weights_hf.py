@@ -1,6 +1,6 @@
 from huggingface_hub import snapshot_download
 
-repo_id = "minhhotboy9x/MMEB_model_grads"
+repo_id = "enguyen1210/qwen7b_cls"
 
 # folders_to_download = [
 #     "ckd_meta_ret/*",
@@ -9,7 +9,7 @@ repo_id = "minhhotboy9x/MMEB_model_grads"
 local_dir = snapshot_download(
     repo_id=repo_id,
     # allow_patterns=folders_to_download,
-    local_dir="./teacher_gradients",  
+    local_dir="./meta_train",  
     repo_type="model"                
 )
 

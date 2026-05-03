@@ -79,7 +79,7 @@ def time_block(name):
 
 
 def main():
-    # set_seed(56)
+    set_seed(56)
     for arg in sys.argv:
         if arg.startswith("--local-rank="):
             rank = arg.split("=")[1]

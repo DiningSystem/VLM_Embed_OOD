@@ -87,7 +87,7 @@ class Trainer:
         self.model_args = model_args
         self.training_args = training_args
         
-        self.distiller = DDP(self.distiller, device_ids=[self.gpu_id])
+        self.distiller = DDP(self.distiller, device_ids=[self.gpu_id], find_unused_parameters=True)
     
     def _debug_batch_devices(self, obj, prefix=""):
         if obj is None:

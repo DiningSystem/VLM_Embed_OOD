@@ -3,8 +3,9 @@
 # Số lượng GPU trên mỗi node (máy)
 NUM_GPUS_PER_NODE=1
 
-# Đường dẫn tới file script training của bạn
+export TORCH_DISTRIBUTED_DEBUG=DETAIL
 TRAIN_SCRIPT="train_distill_ddp.py"
+    # --model_name apple/FastVLM-0.5B \
 
 # =========================================================================
 # Dùng torchrun để khởi chạy
@@ -25,10 +26,10 @@ torchrun --standalone \
     --dataset_name "TIGER-Lab/MMEB-train" \
     --subset_name "HatefulMemes" \
     --dataset_split "original" \
-    --image_dir "/workspace/ComfyUI/models/photomaker/VLM_Embed/vlm2vec_train/MMEB-train" \
+    --image_dir "../vlm2vec_train/MMEB-train" \
     --percent_data 1.0 \
     --output_dir "training/meta_propose_cls" \
-    --per_device_train_batch_size 8 \
+    --per_device_train_batch_size 1 \
     --gradient_accumulation_steps 1 \
     --learning_rate 1e-4 \
     --num_train_epochs 1 \
@@ -43,7 +44,7 @@ torchrun --standalone \
     --lr_scheduler_type "cosine" \
     --warmup_ratio 0.03 \
     --kd_weight 0.3 \
-    --kd_loss_type "proposal_dtw" \
+    --kd_loss_type "contrastive_rkd" \
     --image_resolution "low" \
     --projector_config_path "./config/projector_config.json" \
     --projector_lr 5e-5

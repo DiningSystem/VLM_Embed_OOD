@@ -14,3 +14,6 @@ qwenvl_2b_cls_gradients.zip
 eval-res/
 .env
 teacher_gradients/
+meta_train/
+eval_results/
+note.txt

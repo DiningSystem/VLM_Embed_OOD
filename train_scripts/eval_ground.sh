@@ -1,4 +1,4 @@
-MODEL_NAME=/mnt/disk1/backup_user/dang.nh4/VLM_Embed/training/RKD/checkpoint-final
+MODEL_NAME=/mnt/disk1/backup_user/dang.nh4/VLM_Embed/training/gvendi_phase2_ground_fastvlm/checkpoint-epoch-0
 OUTPUT_DIR="./eval-res"
 DATASET_NAME="TIGER-Lab/MMEB-eval"
 IMAGE_DIR="/mnt/disk1/backup_user/dang.nh4/eval-data"

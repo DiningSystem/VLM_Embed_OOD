@@ -1,12 +1,13 @@
-MODEL_NAME=/mnt/disk1/backup_user/dang.nh4/VLM_Embed/training/gvendi_phase2_ground_fastvlm/checkpoint-epoch-0
+MODEL_NAME=/mnt/disk1/backup_user/dang.nh4/VLM_Embed/training/gvendi_phase2_vqa_fastvlm/checkpoint-epoch-0
 OUTPUT_DIR="./eval-res"
 DATASET_NAME="TIGER-Lab/MMEB-eval"
 IMAGE_DIR="/mnt/disk1/backup_user/dang.nh4/eval-data"
-BATCH_SIZE=32
-
-datasets=(MSCOCO RefCOCO RefCOCO-Matching Visual7W-Pointing) 
+BATCH_SIZE=48
 
 # export CUDA_VISIBLE_DEVICES=2
+datasets=("OK-VQA" "A-OKVQA" "DocVQA" "InfographicsVQA" "ChartQA" "Visual7W")
+# datasets=(Visual7W)
+
 echo "Starting comprehensive model evaluation for $MODEL_NAME"
 echo "Targeting ${#datasets[@]} MMEB subsets."
 
@@ -22,7 +23,7 @@ for SUBSET_NAME in "${datasets[@]}"; do
         --normalize True \
         --lora True \
         --lora_r 64 \
-        --gpu_id 5 \
+        --gpu_id 2 \
         --bf16 \
         --dataset_name "$DATASET_NAME" \
         --subset_name "$SUBSET_NAME" \

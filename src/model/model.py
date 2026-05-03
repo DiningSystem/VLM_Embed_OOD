@@ -535,6 +535,7 @@ class MMEBModel(nn.Module):
     def forward(self, qry: Dict[str, Tensor] = None, tgt: Dict[str, Tensor] = None, *args, **kwargs):
         # print(f"qry keys: {qry.keys() if qry else None}, tgt keys: {tgt.keys() if tgt else None}")
         qry_reps = self.encode_input(qry)[0] if qry else None  # (bsz_per_device, dim)
+        output_hidden_states = self.encode_input(qry)[-1] if qry else None
         tgt_reps = self.encode_input(tgt)[0] if tgt else None # (bsz_per_device, dim)
 
         if qry_reps is None or tgt_reps is None:

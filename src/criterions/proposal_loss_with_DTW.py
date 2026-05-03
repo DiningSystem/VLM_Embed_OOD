@@ -48,8 +48,8 @@ class ProposalLossWithDTW(nn.Module):
         
         teacher_qry_input = input_data['teacher_inputs']['qry']
         teacher_pos_input = input_data['teacher_inputs']['pos']
-        num_text_qry_tokens = ((teacher_qry_input['input_ids'] < 151652) | (teacher_qry_input['input_ids'] > 151656)).sum(dim=1)
-        num_text_pos_tokens = ((teacher_pos_input['input_ids'] < 151652) | (teacher_pos_input['input_ids'] > 151656)).sum(dim=1)
+        # num_text_qry_tokens = ((teacher_qry_input['input_ids'] < 151652) | (teacher_qry_input['input_ids'] > 151656)).sum(dim=1)
+        # num_text_pos_tokens = ((teacher_pos_input['input_ids'] < 151652) | (teacher_pos_input['input_ids'] > 151656)).sum(dim=1)
         batch_size = student_qry_input['input_ids'].size(0)
         with torch.no_grad():
             teacher_model.eval()

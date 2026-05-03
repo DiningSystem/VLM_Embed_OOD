@@ -340,9 +340,12 @@ class DistillationDataset(Dataset):
                 full_item = "|".join(strings)
 
                 return {"sample_id": hashlib.md5(full_item.encode('utf-8')).hexdigest()}
-            
-            self.train_data = self.train_data.map(generate_hash_id)
-
+        else:
+            def generate_hash_id(example):
+                return {"sample_id": None}
+                        
+        self.train_data = self.train_data.map(generate_hash_id)
+        print("LENNNNNNN BEFORE", len(self.train_data))
         if self.teacher_cache_dir and os.path.isdir(self.teacher_cache_dir):
             
             if not self.data_args.phase_1:
@@ -351,15 +354,18 @@ class DistillationDataset(Dataset):
                     sample_id = example.get("sample_id")
                     grad_path = os.path.join(self.teacher_cache_dir, f"{sample_id}.pt")
 
-                    return os.path.isfile(grad_path)
+                    has_path = os.path.isfile(grad_path)
+                    return has_path
                 
                 self.train_data = self.train_data.filter(has_cached_gradient)
+                print("LENNNNNNN AFTER", len(self.train_data))
             else:
                 def has_cached_gradient(example):
                     sample_id = example.get("sample_id")
                     grad_path = os.path.join(self.teacher_cache_dir, f"{sample_id}.pt")
 
-                    return not os.path.isfile(grad_path)
+                    has_path = os.path.isfile(grad_path)
+                    return not has_path
                 
                 self.train_data = self.train_data.filter(has_cached_gradient)
 
